@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "295585006212",
+    "project_id": "bgmi-tournamentor",
+    "storage_bucket": "bgmi-tournamentor.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:295585006212:android:b0cd83305f6a26fced78d1",
+        "android_client_info": {
+          "package_name": "com.tournamentor.bgmi.bgmi_tournamentor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDYyIbIfcgjXMSIYo63EmJDrfQYMZR1m7k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
