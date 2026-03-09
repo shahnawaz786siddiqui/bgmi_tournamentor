@@ -65,6 +65,7 @@ class UpcomingSection extends StatelessWidget {
                     prize: _formatCurrency(data['prize']),
                     entry: _formatCurrency(data['entryFee'], isEntry: true),
                     time: data['timeLabel'] ?? '',
+                    mapImageUrl: data['mapImageUrl'] as String? ?? '',
                   );
                 }).toList(),
               );
@@ -92,6 +93,7 @@ class TournamentCard extends StatelessWidget {
   final String prize;
   final String entry;
   final String time;
+  final String mapImageUrl;
 
   const TournamentCard({
     super.key,
@@ -100,6 +102,7 @@ class TournamentCard extends StatelessWidget {
     required this.prize,
     required this.entry,
     required this.time,
+    this.mapImageUrl = '',
   });
 
   @override
@@ -130,8 +133,10 @@ class TournamentCard extends StatelessWidget {
             width: 70,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                image: AssetImage("assets/images/map.png"), // 👈 apni image lagao
+              image: DecorationImage(
+                image: mapImageUrl.isNotEmpty
+                    ? NetworkImage(mapImageUrl) as ImageProvider
+                    : const AssetImage('assets/images/map.png'),
                 fit: BoxFit.cover,
               ),
             ),

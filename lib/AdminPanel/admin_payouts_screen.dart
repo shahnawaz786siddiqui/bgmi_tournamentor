@@ -52,7 +52,6 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen> {
         stream: FirebaseFirestore.instance
             .collection('payouts')
             .where('status', isEqualTo: _filterStatus)
-            .orderBy('requestedAt', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -62,14 +61,21 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen> {
           if (snapshot.hasError) {
             return const Center(
               child: Text(
-                'Failed to load payouts. Ensure the "payouts" collection exists.',
+                'Failed to load payouts.',
                 style: TextStyle(color: Colors.white54),
                 textAlign: TextAlign.center,
               ),
             );
           }
 
-          final docs = snapshot.data?.docs ?? [];
+          // Sort client-side: newest first
+          final docs = [...(snapshot.data?.docs ?? [])]
+            ..sort((a, b) {
+              final aTime = a.data()['requestedAt'];
+              final bTime = b.data()['requestedAt'];
+              if (aTime == null || bTime == null) return 0;
+              return (bTime as Timestamp).compareTo(aTime as Timestamp);
+            });
 
           if (docs.isEmpty) {
             return Center(
@@ -138,8 +144,10 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen> {
                         ],
                       ),
                       const SizedBox(height: 12),
-                      Text('Method: $paymentMethod', style: const TextStyle(color: Colors.white70)),
+                       Text('Method: $paymentMethod', style: const TextStyle(color: Colors.white70)),
                       Text('Phone/UPI: $phone', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      if ((data['userName'] ?? '').toString().isNotEmpty)
+                        Text('Player: ${data['userName']}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
                       const SizedBox(height: 8),
                       Text('Requested: $dateString', style: const TextStyle(color: Colors.white54, fontSize: 12)),
                       Text('User ID: $userId', style: const TextStyle(color: Colors.white38, fontSize: 10)),

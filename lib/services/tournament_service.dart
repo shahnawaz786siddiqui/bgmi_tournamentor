@@ -29,7 +29,7 @@ class TournamentService {
     final snap = await userRef.get();
     if (!snap.exists) {
       await userRef.set({
-        'balance': 500.0, // default starting money
+        'balance': 0.0,
         'createdAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
     }
@@ -59,11 +59,13 @@ class TournamentService {
     bool isFeatured = false,
     bool isUpcoming = true,
     String status = 'UPCOMING',
+    String? imageUrl,
+    String? mapImageUrl,
   }) async {
     final docRef =
         id == null ? _firestore.collection('tournaments').doc() : _firestore.collection('tournaments').doc(id);
 
-    await docRef.set({
+    final Map<String, dynamic> data = {
       'title': title,
       'prize': prize,
       'entryFee': entryFee,
@@ -79,7 +81,11 @@ class TournamentService {
       'isUpcoming': isUpcoming,
       'status': status,
       'startTime': FieldValue.serverTimestamp(),
-    }, SetOptions(merge: true));
+    };
+    if (imageUrl != null && imageUrl.isNotEmpty) data['imageUrl'] = imageUrl;
+    if (mapImageUrl != null && mapImageUrl.isNotEmpty) data['mapImageUrl'] = mapImageUrl;
+
+    await docRef.set(data, SetOptions(merge: true));
   }
 
   Future<void> updateTournamentFlags(
@@ -88,12 +94,16 @@ class TournamentService {
     bool? isFeatured,
     bool? isUpcoming,
     String? status,
+    String? imageUrl,
+    String? mapImageUrl,
   }) async {
     final data = <String, dynamic>{};
     if (isMega != null) data['isMega'] = isMega;
     if (isFeatured != null) data['isFeatured'] = isFeatured;
     if (isUpcoming != null) data['isUpcoming'] = isUpcoming;
     if (status != null) data['status'] = status;
+    if (imageUrl != null) data['imageUrl'] = imageUrl;
+    if (mapImageUrl != null) data['mapImageUrl'] = mapImageUrl;
     if (data.isEmpty) return;
     await _firestore.collection('tournaments').doc(id).update(data);
   }
@@ -278,6 +288,57 @@ class TournamentService {
           if (raw is int) return raw.toDouble();
           return (raw as num).toDouble();
         });
+  }
+
+  /// Submit a withdrawal request — deducts balance & writes a Pending payout doc atomically.
+  Future<void> requestWithdrawal({
+    required double amount,
+    required String upiOrPhone,
+    required String paymentMethod,
+  }) async {
+    final user = await ensureUser();
+    final uid = user.uid;
+
+    final userRef = _firestore.collection('users').doc(uid);
+    final payoutRef = _firestore.collection('payouts').doc();
+
+    await _firestore.runTransaction((tx) async {
+      final snap = await tx.get(userRef);
+      final raw = snap.data()?['balance'] ?? 0;
+      final current = (raw is int) ? raw.toDouble() : (raw as num).toDouble();
+
+      if (amount < 50) {
+        throw FirebaseException(
+          plugin: 'wallet',
+          message: 'MINIMUM_WITHDRAWAL',
+        );
+      }
+
+      if (amount > current) {
+        throw FirebaseException(
+          plugin: 'wallet',
+          message: 'INSUFFICIENT_FUNDS',
+        );
+      }
+
+      // Deduct balance
+      tx.update(userRef, {
+        'balance': current - amount,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Create payout request
+      final userName = snap.data()?['name'] ?? 'Unknown';
+      tx.set(payoutRef, {
+        'userId': uid,
+        'userName': userName,
+        'amount': amount,
+        'phoneNumber': upiOrPhone,
+        'paymentMethod': paymentMethod,
+        'status': 'Pending',
+        'requestedAt': FieldValue.serverTimestamp(),
+      });
+    });
   }
 
   /// Add amount to current user's balance (e.g. after buying credits in shop).

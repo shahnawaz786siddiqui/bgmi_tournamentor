@@ -4,7 +4,6 @@ import 'package:bgmi_tournamentor/AdminPanel/admin_panel.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-
 import 'bottomnavigationbar/bottom_navigation_bar.dart';
 import 'featureevent/feature_events.dart';
 import 'featureevent/upcoming_tournament.dart';

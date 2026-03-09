@@ -20,6 +20,283 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
     TournamentService.instance.ensureUser();
   }
 
+  void _showWithdrawSheet(BuildContext context) {
+    final amountController = TextEditingController();
+    final upiController = TextEditingController();
+    String selectedMethod = 'UPI';
+    bool loading = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setSheetState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(ctx).viewInsets.bottom,
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: Color(0xFF2B1A0F),
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                ),
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: const [
+                        Icon(Icons.account_balance_wallet,
+                            color: Color(0xFFF47B25), size: 22),
+                        SizedBox(width: 10),
+                        Text(
+                          'Withdraw Money',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    StreamBuilder<double>(
+                      stream: TournamentService.instance.balanceStream(),
+                      builder: (context, snap) {
+                        final bal = snap.data ?? 0.0;
+                        return Text(
+                          'Available balance: ₹${bal.toStringAsFixed(0)}',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+                    // Amount
+                    TextField(
+                      controller: amountController,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Amount (min ₹50)',
+                        labelStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon: const Icon(Icons.currency_rupee,
+                            color: Color(0xFFF47B25), size: 18),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white24),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFF47B25)),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF3B2314),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    // Payment method
+                    DropdownButtonFormField<String>(
+                      value: selectedMethod,
+                      dropdownColor: const Color(0xFF3B2314),
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: 'Payment Method',
+                        labelStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon: const Icon(Icons.payment,
+                            color: Color(0xFFF47B25), size: 18),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white24),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFF47B25)),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF3B2314),
+                      ),
+                      items: ['UPI', 'Paytm', 'Bank Transfer']
+                          .map((m) => DropdownMenuItem(
+                                value: m,
+                                child: Text(m),
+                              ))
+                          .toList(),
+                      onChanged: (val) {
+                        if (val != null) {
+                          setSheetState(() => selectedMethod = val);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 14),
+                    // UPI / Phone
+                    TextField(
+                      controller: upiController,
+                      keyboardType: TextInputType.text,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        labelText: selectedMethod == 'Bank Transfer'
+                            ? 'Phone Number'
+                            : 'UPI ID / Phone Number',
+                        labelStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon: const Icon(Icons.person_outline,
+                            color: Color(0xFFF47B25), size: 18),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: Colors.white24),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              const BorderSide(color: Color(0xFFF47B25)),
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFF3B2314),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFF47B25),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: loading
+                            ? const SizedBox(
+                                width: 18,
+                                height: 18,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : const Icon(Icons.send, color: Colors.white),
+                        label: Text(
+                          loading ? 'Submitting...' : 'Submit Request',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        onPressed: loading
+                            ? null
+                            : () async {
+                                final amtText =
+                                    amountController.text.trim();
+                                final upi = upiController.text.trim();
+
+                                if (amtText.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content:
+                                            Text('Enter withdrawal amount')),
+                                  );
+                                  return;
+                                }
+                                if (upi.isEmpty) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text(
+                                            'Enter UPI ID / phone number')),
+                                  );
+                                  return;
+                                }
+
+                                final amt = double.tryParse(amtText);
+                                if (amt == null || amt <= 0) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content:
+                                            Text('Enter a valid amount')),
+                                  );
+                                  return;
+                                }
+
+                                setSheetState(() => loading = true);
+                                try {
+                                  await TournamentService.instance
+                                      .requestWithdrawal(
+                                    amount: amt,
+                                    upiOrPhone: upi,
+                                    paymentMethod: selectedMethod,
+                                  );
+                                  if (ctx.mounted) Navigator.pop(ctx);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                            '✅ Withdrawal request submitted! Admin will process it soon.'),
+                                        backgroundColor: Colors.green,
+                                      ),
+                                    );
+                                  }
+                                } on FirebaseException catch (e) {
+                                  setSheetState(() => loading = false);
+                                  String msg = 'Something went wrong';
+                                  if (e.message == 'INSUFFICIENT_FUNDS') {
+                                    msg = '❌ Insufficient wallet balance';
+                                  } else if (e.message ==
+                                      'MINIMUM_WITHDRAWAL') {
+                                    msg =
+                                        '❌ Minimum withdrawal amount is ₹50';
+                                  }
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                      SnackBar(
+                                        content: Text(msg),
+                                        backgroundColor: Colors.redAccent,
+                                      ),
+                                    );
+                                  }
+                                } catch (_) {
+                                  setSheetState(() => loading = false);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context)
+                                        .showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Failed to submit request. Try again.')),
+                                    );
+                                  }
+                                }
+                              },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFFf47b25);
@@ -229,24 +506,48 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
 
                     const SizedBox(height: 12),
 
-                    /// ADMIN PANEL BUTTON
+                    /// WITHDRAW BUTTON
                     ElevatedButton.icon(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1A1A1A),
+                        backgroundColor: const Color(0xFF1C3D2E),
                         minimumSize: const Size(double.infinity, 45),
-                        side: const BorderSide(color: Color(0xFFF47B25), width: 1.2),
+                        side: const BorderSide(
+                            color: Color(0xFF27AE60), width: 1.2),
                       ),
-                      icon: const Icon(Icons.admin_panel_settings,
-                          color: Color(0xFFF47B25), size: 20),
+                      icon: const Icon(Icons.account_balance_wallet_outlined,
+                          color: Color(0xFF27AE60), size: 20),
                       label: const Text(
-                        "Admin Panel",
+                        "Withdraw Money",
                         style: TextStyle(
-                          color: Color(0xFFF47B25),
+                          color: Color(0xFF27AE60),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      onPressed: () => openAdminPanel(context),
+                      onPressed: () => _showWithdrawSheet(context),
                     ),
+
+                    const SizedBox(height: 12),
+
+                    /// ADMIN PANEL BUTTON — only visible to the admin account
+                    if (FirebaseAuth.instance.currentUser?.email ==
+                        'shahnawazsiddiqui88@gmail.com')
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1A1A1A),
+                          minimumSize: const Size(double.infinity, 45),
+                          side: const BorderSide(color: Color(0xFFF47B25), width: 1.2),
+                        ),
+                        icon: const Icon(Icons.admin_panel_settings,
+                            color: Color(0xFFF47B25), size: 20),
+                        label: const Text(
+                          "Admin Panel",
+                          style: TextStyle(
+                            color: Color(0xFFF47B25),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onPressed: () => openAdminPanel(context),
+                      ),
 
                     const SizedBox(height: 12),
 

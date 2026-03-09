@@ -34,7 +34,7 @@ class _SignupScreenState extends State<SignupScreen> {
         // Create user document with phone number and name
         await FirebaseFirestore.instance.collection('users').doc(uid).set({
           'name': _nameController.text.trim(),
-          'balance': 500.0, // default starting money
+          'balance': 0.0,
           'phoneNumber': _phoneController.text.trim(),
           'createdAt': FieldValue.serverTimestamp(),
         });
