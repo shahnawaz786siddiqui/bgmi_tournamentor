@@ -26,16 +26,30 @@ class UpcomingSection extends StatelessWidget {
           StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: TournamentService.instance.tournamentsStream(),
             builder: (context, snapshot) {
+              if (snapshot.hasError) {
+                return Center(
+                  child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                );
+              }
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
               final allDocs = snapshot.data?.docs ?? [];
               final docs = allDocs.where((doc) {
                 final data = doc.data();
-                final isUpcoming = data['isUpcoming'];
-                // Show tournaments where isUpcoming is true or not set
-                return isUpcoming == null || isUpcoming == true;
+                var isUpcoming = data['isUpcoming'];
+                bool finalIsUpcoming = true; // default
+                if(isUpcoming is bool) {
+                  finalIsUpcoming = isUpcoming;
+                } else if(isUpcoming is String) {
+                  finalIsUpcoming = isUpcoming.toLowerCase() == 'true';
+                }
+                print("DEBUG: ${doc.id} -> isUpcoming: $finalIsUpcoming (Raw: $isUpcoming)");
+                return finalIsUpcoming;
               }).toList();
+              
+              print("DEBUG: Total Upcoming Docs count: ${docs.length}");
+
               if (docs.isEmpty) {
                 return const Text(
                   'No upcoming tournaments',
@@ -48,8 +62,8 @@ class UpcomingSection extends StatelessWidget {
                   return TournamentCard(
                     tournamentId: doc.id,
                     title: data['title'] ?? 'Tournament',
-                    prize: data['prize'] ?? '—',
-                    entry: data['entryFee'] ?? 'FREE',
+                    prize: _formatCurrency(data['prize']),
+                    entry: _formatCurrency(data['entryFee'], isEntry: true),
                     time: data['timeLabel'] ?? '',
                   );
                 }).toList(),
@@ -59,6 +73,16 @@ class UpcomingSection extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatCurrency(dynamic value, {bool isEntry = false}) {
+    if (value == null || value.toString().trim().isEmpty) {
+      return isEntry ? 'FREE' : '—';
+    }
+    String strVal = value.toString().trim();
+    if (strVal.toUpperCase() == 'FREE') return 'FREE';
+    if (strVal.startsWith('₹')) strVal = strVal.substring(1).trim();
+    return '₹$strVal';
   }
 }
 

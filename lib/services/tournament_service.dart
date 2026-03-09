@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -57,6 +58,7 @@ class TournamentService {
     bool isMega = false,
     bool isFeatured = false,
     bool isUpcoming = true,
+    String status = 'UPCOMING',
   }) async {
     final docRef =
         id == null ? _firestore.collection('tournaments').doc() : _firestore.collection('tournaments').doc(id);
@@ -75,6 +77,7 @@ class TournamentService {
       'isMega': isMega,
       'isFeatured': isFeatured,
       'isUpcoming': isUpcoming,
+      'status': status,
       'startTime': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
@@ -84,13 +87,19 @@ class TournamentService {
     bool? isMega,
     bool? isFeatured,
     bool? isUpcoming,
+    String? status,
   }) async {
     final data = <String, dynamic>{};
     if (isMega != null) data['isMega'] = isMega;
     if (isFeatured != null) data['isFeatured'] = isFeatured;
     if (isUpcoming != null) data['isUpcoming'] = isUpcoming;
+    if (status != null) data['status'] = status;
     if (data.isEmpty) return;
     await _firestore.collection('tournaments').doc(id).update(data);
+  }
+
+  Future<void> deleteTournament(String id) async {
+    await _firestore.collection('tournaments').doc(id).delete();
   }
 
   Future<void> joinTournament(String tournamentId, String inGameName, String phoneNumber) async {
@@ -144,6 +153,7 @@ class TournamentService {
           'balance': currentBalance - entryAmount,
           'lastJoinedTournamentId': tournamentId,
           'phoneNumber': phoneNumber, // Update the user's latest phone number
+          'registeredTournaments': FieldValue.arrayUnion([tournamentId]),
           'updatedAt': FieldValue.serverTimestamp(),
         },
         SetOptions(merge: true),
@@ -173,29 +183,83 @@ class TournamentService {
   }
 
   Stream<List<Map<String, dynamic>>> myTournamentsStream() {
-    return _firestore
-        .collectionGroup('registrations')
-        .where('userId', isEqualTo: _auth.currentUser?.uid)
-        .snapshots()
-        .asyncMap((snapshot) async {
-      final List<Map<String, dynamic>> results = [];
-      for (var doc in snapshot.docs) {
-        // The parent of a registration doc is the 'registrations' collection.
-        // The parent of that collection is the tournament document.
-        final tournamentRef = doc.reference.parent.parent;
-        if (tournamentRef != null) {
-          final tournamentSnap = await tournamentRef.get();
-          if (tournamentSnap.exists) {
-            final tData = tournamentSnap.data() as Map<String, dynamic>;
-            tData['id'] = tournamentSnap.id;
-            // Also include registration time if needed
-            tData['joinedAt'] = doc.data()['joinedAt'];
-            results.add(tData);
+    final userId = _auth.currentUser?.uid;
+    if (userId == null) return Stream.value([]);
+
+    final userStream = _firestore.collection('users').doc(userId).snapshots();
+    final tournamentsStream = _firestore.collection('tournaments').snapshots();
+
+    late StreamController<List<Map<String, dynamic>>> controller;
+    DocumentSnapshot<Map<String, dynamic>>? latestUser;
+    List<QueryDocumentSnapshot<Map<String, dynamic>>> latestTournaments = [];
+    bool userReady = false;
+    bool tournamentsReady = false;
+
+    void emit() {
+      if (!userReady || !tournamentsReady) return;
+      try {
+        // Get registered IDs from latest user doc
+        List<String> registeredIds = [];
+        if (latestUser != null && latestUser!.exists) {
+          final data = latestUser!.data();
+          if (data != null && data.containsKey('registeredTournaments')) {
+            registeredIds = List<String>.from(data['registeredTournaments'] ?? []);
           }
         }
+
+        // Build a map of all tournaments
+        final Map<String, Map<String, dynamic>> cache = {};
+        for (final doc in latestTournaments) {
+          final d = Map<String, dynamic>.from(doc.data());
+          d['id'] = doc.id;
+          cache[doc.id] = d;
+        }
+
+        // Return only the tournaments this user has registered for
+        final result = registeredIds
+            .where((id) => cache.containsKey(id))
+            .map((id) => cache[id]!)
+            .toList();
+
+        controller.add(result);
+      } catch (e) {
+        // ignore emit errors
       }
-      return results;
-    });
+    }
+
+    StreamSubscription? userSub;
+    StreamSubscription? tournamentSub;
+
+    controller = StreamController<List<Map<String, dynamic>>>.broadcast(
+      onListen: () {
+        userSub = userStream.listen(
+          (snap) {
+            latestUser = snap;
+            userReady = true;
+            emit();
+          },
+          onError: (e) {
+            if (!controller.isClosed) controller.addError(e);
+          },
+        );
+        tournamentSub = tournamentsStream.listen(
+          (snap) {
+            latestTournaments = snap.docs;
+            tournamentsReady = true;
+            emit();
+          },
+          onError: (e) {
+            if (!controller.isClosed) controller.addError(e);
+          },
+        );
+      },
+      onCancel: () {
+        userSub?.cancel();
+        tournamentSub?.cancel();
+      },
+    );
+
+    return controller.stream;
   }
 
   /// Stream of current user's wallet balance (from Firestore users/{uid}).

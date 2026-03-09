@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/tournament_service.dart';
+import '../AdminPanel/admin_login_screen.dart';
 import 'shop.dart';
 
 class WarriorProfileScreen extends StatefulWidget {
@@ -224,6 +225,27 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
                           ),
                         );
                       },
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    /// ADMIN PANEL BUTTON
+                    ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1A1A1A),
+                        minimumSize: const Size(double.infinity, 45),
+                        side: const BorderSide(color: Color(0xFFF47B25), width: 1.2),
+                      ),
+                      icon: const Icon(Icons.admin_panel_settings,
+                          color: Color(0xFFF47B25), size: 20),
+                      label: const Text(
+                        "Admin Panel",
+                        style: TextStyle(
+                          color: Color(0xFFF47B25),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      onPressed: () => openAdminPanel(context),
                     ),
 
                     const SizedBox(height: 12),

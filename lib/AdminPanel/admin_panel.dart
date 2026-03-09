@@ -1,6 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'admin_login_screen.dart';
 import 'admin_manage_users_screen.dart';
+import 'admin_manage_tournaments_screen.dart';
+import 'admin_notifications_screen.dart';
 import 'admin_payouts_screen.dart';
 import 'admin_settings_screen.dart';
 import 'admin_tournament_editor.dart';
@@ -64,6 +67,45 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 icon: const Icon(Icons.notifications,
                     color: primaryColor),
                 onPressed: () {},
+              ),
+              IconButton(
+                tooltip: 'Logout from Admin',
+                icon: const Icon(Icons.logout, color: Colors.white54),
+                onPressed: () async {
+                  final confirm = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: const Color(0xFF1E1E1E),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      title: const Text('Logout Admin',
+                          style: TextStyle(color: Colors.white)),
+                      content: const Text(
+                        'Are you sure you want to logout from the admin panel?',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancel',
+                              style: TextStyle(color: Colors.white54)),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                          ),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Logout'),
+                        ),
+                      ],
+                    ),
+                  );
+                  if (confirm == true) {
+                    await logoutAdmin();
+                    if (context.mounted) Navigator.pop(context);
+                  }
+                },
               )
             ],
           ),
@@ -167,7 +209,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     final title = data['title'] ?? 'Tournament';
                     final slots = data['joinedPlayers'] ?? 0;
                     final totalSlots = data['totalSlots'] ?? 100;
-                    final entry = data['entryFee'] ?? 'Free';
+                    final entry = _formatCurrency(data['entryFee'], isEntry: true);
                     return PremiumTournamentCard(
                       title: title,
                       slots: slots,
@@ -206,6 +248,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     },
                   ),
                   ActionCard(
+                    Icons.edit_document,
+                    "Manage\nTournaments",
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminManageTournamentsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  ActionCard(
                     Icons.person_search,
                     "Manage\nUsers",
                     onTap: () {
@@ -237,6 +291,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (_) => const AdminSettingsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  ActionCard(
+                    Icons.notifications_active,
+                    "Notifications",
+                    highlightColor: Colors.blueAccent,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AdminNotificationsScreen(),
                         ),
                       );
                     },
@@ -305,6 +372,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } else {
       return number.toStringAsFixed(0);
     }
+  }
+
+  String _formatCurrency(dynamic value, {bool isEntry = false}) {
+    if (value == null || value.toString().trim().isEmpty) {
+      return isEntry ? 'FREE' : '—';
+    }
+    String strVal = value.toString().trim();
+    if (strVal.toUpperCase() == 'FREE') return 'FREE';
+    if (strVal.startsWith('₹')) strVal = strVal.substring(1).trim();
+    return '₹$strVal';
   }
 }
 
@@ -445,12 +522,14 @@ class ActionCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback? onTap;
+  final Color? highlightColor;
 
-  const ActionCard(this.icon, this.label, {super.key, this.onTap});
+  const ActionCard(this.icon, this.label, {super.key, this.onTap, this.highlightColor});
 
   @override
   Widget build(BuildContext context) {
     const primaryColor = Color(0xFFF47B25);
+    final color = highlightColor ?? primaryColor;
 
     return InkWell(
       onTap: onTap,
@@ -463,7 +542,7 @@ class ActionCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: primaryColor.withOpacity(0.3),
+              color: color.withValues(alpha: 0.3),
               blurRadius: 10,
             )
           ],
@@ -471,7 +550,7 @@ class ActionCard extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: primaryColor, size: 30),
+            Icon(icon, color: color, size: 30),
             const SizedBox(height: 10),
             Text(label,
                 textAlign: TextAlign.center,
@@ -484,4 +563,4 @@ class ActionCard extends StatelessWidget {
       ),
     );
   }
-}
+}

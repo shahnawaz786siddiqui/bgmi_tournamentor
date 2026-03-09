@@ -64,9 +64,9 @@ class _TournamentScreenState extends State<TournamentScreen> {
                 tournamentId: id,
                 title: data['title'] ?? 'Tournament',
                 time: data['timeLabel'] ?? '',
-                prize: data['prize'] ?? '—',
-                entry: data['entryFee'] ?? 'FREE',
-                perKill: data['perKill'] ?? '0',
+                prize: _formatCurrency(data['prize']),
+                entry: _formatCurrency(data['entryFee'], isEntry: true),
+                perKill: _formatCurrency(data['perKill']),
                 type: data['type'] ?? 'Solo',
                 map: data['map'] ?? 'Erangel',
                 version: data['version'] ?? 'TPP',
@@ -78,6 +78,18 @@ class _TournamentScreenState extends State<TournamentScreen> {
         },
       ),
     );
+  }
+
+  String _formatCurrency(dynamic value, {bool isEntry = false}) {
+    if (value == null || value.toString().trim().isEmpty) {
+      return isEntry ? 'FREE' : '—';
+    }
+    String strVal = value.toString().trim();
+    if (strVal.toUpperCase() == 'FREE') return 'FREE';
+    // Remove if already has ₹ to avoid double
+    if (strVal.startsWith('₹')) strVal = strVal.substring(1).trim();
+    // Return with ₹ prefix
+    return '₹$strVal';
   }
 }
 

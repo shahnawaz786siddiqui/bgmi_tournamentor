@@ -29,6 +29,7 @@ class _AdminTournamentEditorScreenState
   bool _isMega = false;
   bool _isFeatured = false;
   bool _isUpcoming = true;
+  String _status = 'UPCOMING';
   bool _saving = false;
 
   Future<void> _saveTournament() async {
@@ -49,6 +50,7 @@ class _AdminTournamentEditorScreenState
         isMega: _isMega,
         isFeatured: _isFeatured,
         isUpcoming: _isUpcoming,
+        status: _status,
       );
       _titleController.clear();
       _prizeController.clear();
@@ -138,6 +140,31 @@ class _AdminTournamentEditorScreenState
                     activeColor: primaryColor,
                   ),
                   const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    value: _status,
+                    dropdownColor: const Color(0xFF1E1E1E),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      labelText: 'Tournament Status',
+                      labelStyle: TextStyle(color: Colors.white70),
+                      enabledBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: Colors.white24),
+                      ),
+                      focusedBorder: UnderlineInputBorder(
+                        borderSide: BorderSide(color: primaryColor),
+                      ),
+                    ),
+                    items: ['UPCOMING', 'LIVE', 'ONGOING', 'COMPLETED']
+                        .map((status) => DropdownMenuItem(
+                              value: status,
+                              child: Text(status),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _status = val);
+                    },
+                  ),
+                  const SizedBox(height: 12),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -209,6 +236,7 @@ class _AdminTournamentEditorScreenState
                     final isMega = (data['isMega'] ?? false) as bool;
                     final isFeatured = (data['isFeatured'] ?? false) as bool;
                     final isUpcoming = (data['isUpcoming'] ?? true) as bool;
+                    final status = data['status'] ?? 'UPCOMING';
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.all(12),
@@ -263,6 +291,33 @@ class _AdminTournamentEditorScreenState
                                     isUpcoming: v,
                                   );
                                 },
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Text('Status: ', style: TextStyle(color: Colors.white70)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: DropdownButton<String>(
+                                  value: ['UPCOMING', 'LIVE', 'ONGOING', 'COMPLETED'].contains(status) ? status : 'UPCOMING',
+                                  isExpanded: true,
+                                  dropdownColor: const Color(0xFF1E1E1E),
+                                  style: const TextStyle(color: Colors.white),
+                                  underline: Container(height: 1, color: Colors.white24),
+                                  items: ['UPCOMING', 'LIVE', 'ONGOING', 'COMPLETED']
+                                      .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                                      .toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      TournamentService.instance.updateTournamentFlags(
+                                        doc.id,
+                                        status: val,
+                                      );
+                                    }
+                                  },
+                                ),
                               ),
                             ],
                           ),
