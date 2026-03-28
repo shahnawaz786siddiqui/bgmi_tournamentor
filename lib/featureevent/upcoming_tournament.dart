@@ -1,8 +1,8 @@
-
 import 'package:bgmi_tournamentor/screen/tournament_detail_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../services/tournament_service.dart';
+
 class UpcomingSection extends StatelessWidget {
   const UpcomingSection({super.key});
 
@@ -23,32 +23,25 @@ class UpcomingSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+
           StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
             stream: TournamentService.instance.tournamentsStream(),
             builder: (context, snapshot) {
+
               if (snapshot.hasError) {
                 return Center(
-                  child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)),
+                  child: Text(
+                    'Error: ${snapshot.error}',
+                    style: const TextStyle(color: Colors.red),
+                  ),
                 );
               }
+
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
               }
-              final allDocs = snapshot.data?.docs ?? [];
-              final docs = allDocs.where((doc) {
-                final data = doc.data();
-                var isUpcoming = data['isUpcoming'];
-                bool finalIsUpcoming = true; // default
-                if(isUpcoming is bool) {
-                  finalIsUpcoming = isUpcoming;
-                } else if(isUpcoming is String) {
-                  finalIsUpcoming = isUpcoming.toLowerCase() == 'true';
-                }
-                print("DEBUG: ${doc.id} -> isUpcoming: $finalIsUpcoming (Raw: $isUpcoming)");
-                return finalIsUpcoming;
-              }).toList();
-              
-              print("DEBUG: Total Upcoming Docs count: ${docs.length}");
+
+              final docs = snapshot.data?.docs ?? [];
 
               if (docs.isEmpty) {
                 return const Text(
@@ -56,17 +49,21 @@ class UpcomingSection extends StatelessWidget {
                   style: TextStyle(color: Colors.white70),
                 );
               }
+
               return Column(
                 children: docs.take(3).map((doc) {
+
                   final data = doc.data();
+
                   return TournamentCard(
                     tournamentId: doc.id,
                     title: data['title'] ?? 'Tournament',
-                    prize: _formatCurrency(data['prize']),
-                    entry: _formatCurrency(data['entryFee'], isEntry: true),
+                    prize: data['prize']?.toString() ?? '0',
+                    entry: data['entryFee']?.toString() ?? 'FREE',
                     time: data['timeLabel'] ?? '',
-                    mapImageUrl: data['mapImageUrl'] as String? ?? '',
+                    mapImageUrl: data['mapImageUrl'] ?? '',
                   );
+
                 }).toList(),
               );
             },
@@ -75,19 +72,10 @@ class UpcomingSection extends StatelessWidget {
       ),
     );
   }
-
-  String _formatCurrency(dynamic value, {bool isEntry = false}) {
-    if (value == null || value.toString().trim().isEmpty) {
-      return isEntry ? 'FREE' : '—';
-    }
-    String strVal = value.toString().trim();
-    if (strVal.toUpperCase() == 'FREE') return 'FREE';
-    if (strVal.startsWith('₹')) strVal = strVal.substring(1).trim();
-    return '₹$strVal';
-  }
 }
 
 class TournamentCard extends StatelessWidget {
+
   final String tournamentId;
   final String title;
   final String prize;
@@ -107,107 +95,111 @@ class TournamentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        gradient: const LinearGradient(   // 🔥 Gradient added
+        borderRadius: BorderRadius.circular(14),
+        gradient: const LinearGradient(
           colors: [
             Color(0xFF3B2314),
-        Color(0xFF5D412A),
+            Color(0xFF5D412A),
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(
-          color: const Color(0xFF3A2419),
-        ),
+        border: Border.all(color: const Color(0xFF3A2419)),
       ),
+
       child: Row(
         children: [
 
-          /// 🔥 Map Image Box
-          Container(
-            height: 70,
-            width: 70,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              image: DecorationImage(
-                image: mapImageUrl.isNotEmpty
-                    ? NetworkImage(mapImageUrl) as ImageProvider
-                    : const AssetImage('assets/images/map.png'),
-                fit: BoxFit.cover,
-              ),
+          /// MAP IMAGE
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image(
+              height: 65,
+              width: 65,
+              fit: BoxFit.cover,
+              image: mapImageUrl.isNotEmpty
+                  ? NetworkImage(mapImageUrl)
+                  : const AssetImage('assets/images/map.png')
+              as ImageProvider,
             ),
           ),
 
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
 
-          /// 🔥 Title + Prize + Entry
+          /// CENTER CONTENT
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
 
-                /// Title
+                /// TITLE
                 Text(
                   title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
 
                 const SizedBox(height: 8),
 
-                Row(
+                /// PRIZE + ENTRY (AUTO RESPONSIVE)
+                Wrap(
+                  spacing: 18,
+                  runSpacing: 4,
                   children: [
 
-                    /// Prize
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    /// PRIZE
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+
                         const Text(
-                          "PRIZE POOL",
+                          "Prize: ",
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Color(0xFF94A3B8),
                           ),
                         ),
+
                         Text(
-                          prize,
+                          "₹$prize",
                           style: const TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFFFF8C42), // 🔥 Orange
+                            color: Color(0xFFFF8C42),
                           ),
                         ),
                       ],
                     ),
 
-                    const SizedBox(width: 24),
-
-                    /// Entry
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    /// ENTRY
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+
                         const Text(
-                          "ENTRY",
+                          "Entry: ",
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Color(0xFF94A3B8),
                           ),
                         ),
+
                         Text(
-                          entry,
+                          entry == "FREE" ? "FREE" : "₹$entry",
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
                             color: Colors.white,
-                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -218,54 +210,61 @@ class TournamentCard extends StatelessWidget {
             ),
           ),
 
-          /// 🔥 Time + Join Button
+          const SizedBox(width: 10),
+
+          /// RIGHT SIDE
           Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
 
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFF3A2419),
-                  borderRadius: BorderRadius.circular(2),
+                  borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   time,
                   style: const TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     color: Color(0xFFFF8C42),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
 
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
 
               SizedBox(
-                height: 36,
+                height: 30,
+                width: 70,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFF8C42), // 🔥 Orange
+                    backgroundColor: const Color(0xFFFF8C42),
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(2),
+                      borderRadius: BorderRadius.circular(6),
                     ),
                   ),
                   onPressed: () {
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => TournamentDetailsScreen(
-                          tournamentId: tournamentId,
-                        ),
+                        builder: (context) =>
+                            TournamentDetailsScreen(
+                              tournamentId: tournamentId,
+                            ),
                       ),
                     );
+
                   },
                   child: const Text(
                     "Join",
                     style: TextStyle(
-                      color: Colors.white,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                   ),
                 ),

@@ -145,7 +145,14 @@ class _AdminPayoutsScreenState extends State<AdminPayoutsScreen> {
                       ),
                       const SizedBox(height: 12),
                        Text('Method: $paymentMethod', style: const TextStyle(color: Colors.white70)),
-                      Text('Phone/UPI: $phone', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      if (paymentMethod == 'Bank Transfer') ...[
+                        Text('Account No: ${data['accountNumber'] ?? 'N/A'}', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        Text('IFSC code: ${data['ifscCode'] ?? 'N/A'}', style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold)),
+                        if (phone != 'No Phone Provided' && phone.isNotEmpty)
+                          Text('Phone: $phone', style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                      ] else ...[
+                        Text('Phone/UPI: $phone', style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ],
                       if ((data['userName'] ?? '').toString().isNotEmpty)
                         Text('Player: ${data['userName']}', style: const TextStyle(color: Colors.white70, fontSize: 13)),
                       const SizedBox(height: 8),

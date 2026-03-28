@@ -14,8 +14,12 @@ dependencies:
   firebase_core: ^3.10.0
   firebase_auth: ^5.3.0
   cloud_firestore: ^5.5.0
+  firebase_messaging: ^15.0.0
   razorpay_flutter: ^1.4.0
   shared_preferences: ^2.3.4
+  flutter_local_notifications: ^18.0.0
+  http: ^1.2.0
+  dart_jsonwebtoken: ^2.14.3
 
 dev_dependencies:
   flutter_test:

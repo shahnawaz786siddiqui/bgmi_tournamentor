@@ -72,6 +72,7 @@ class _TournamentScreenState extends State<TournamentScreen> {
                 version: data['version'] ?? 'TPP',
                 totalSlots: (data['totalSlots'] ?? 100) as int,
                 joinedPlayers: (data['joinedPlayers'] ?? 0) as int,
+                imageUrl: data['imageUrl'] as String? ?? '',
               );
             },
           );
@@ -103,6 +104,7 @@ class TournamentCard extends StatelessWidget {
   final String type;
   final String map;
   final String version;
+  final String imageUrl;
 
   final int totalSlots;
   final int joinedPlayers;
@@ -120,6 +122,7 @@ class TournamentCard extends StatelessWidget {
     required this.version,
     required this.totalSlots,
     required this.joinedPlayers,
+    this.imageUrl = '',
   });
 
   @override
@@ -132,13 +135,13 @@ class TournamentCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF4C260A),
+            Color(0xFF4C260F),
             Color(0xFF763C0E),
-            Color(0xFF795720),
-            Color(0xFF624916),// Soft Peach/Light Orange
+            Color(0xFF6E4B12),
+            Color(0xFF624916),
           ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
@@ -160,12 +163,38 @@ class TournamentCard extends StatelessWidget {
           /// 🔥 Banner
           ClipRRect(
             borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
-            child: Image.asset(
-              "assets/images/my-match.jpg",
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      "assets/images/my-match.jpg",
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        height: 120,
+                        color: const Color(0xFF3B2314),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFF47B25),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : Image.asset(
+                    "assets/images/my-match.jpg",
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
           ),
 
           Padding(
@@ -416,7 +445,7 @@ class TournamentCard extends StatelessWidget {
                           }
                         }
                       },
-                      child: const Text("Join"),
+                      child: const Text("Join",style: TextStyle(color: Colors.white),),
                     )
                   ],
                 )

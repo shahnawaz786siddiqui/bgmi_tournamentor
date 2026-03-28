@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../services/fcm_service.dart';
 
 class AdminNotificationsScreen extends StatefulWidget {
   const AdminNotificationsScreen({super.key});
@@ -102,6 +103,9 @@ class _RoomIdTabState extends State<_RoomIdTab> {
 
     try {
       final firestore = FirebaseFirestore.instance;
+      final title = '🎮 Room Info: ${_selectedTournamentTitle ?? 'Tournament'}';
+      final message =
+          'Room ID: ${_roomIdCtrl.text.trim()}\nPassword: ${_roomPassCtrl.text.trim()}';
 
       // 1. Store roomId + roomPassword directly on the tournament doc
       await firestore
@@ -113,16 +117,24 @@ class _RoomIdTabState extends State<_RoomIdTab> {
         'roomSentAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Also write a notification doc so all users see it
+      // 2. Write a notification doc (in-app notification bell)
       await firestore.collection('notifications').add({
-        'title': '🎮 Room Info: ${_selectedTournamentTitle ?? 'Tournament'}',
-        'message':
-            'Room ID: ${_roomIdCtrl.text.trim()}\nPassword: ${_roomPassCtrl.text.trim()}',
+        'title': title,
+        'message': message,
         'type': 'room',
         'tournamentId': _selectedTournamentId,
         'tournamentTitle': _selectedTournamentTitle,
         'createdAt': FieldValue.serverTimestamp(),
       });
+
+      // 3. Send real FCM push to all devices (background + killed state)
+      if (FcmService.isConfigured) {
+        await FcmService.sendToAllUsers(
+          title: title,
+          body: 'Room ID: ${_roomIdCtrl.text.trim()} | Password: ${_roomPassCtrl.text.trim()}',
+          type: 'room',
+        );
+      }
 
       _showSnack('✅ Room info sent to all participants!');
       _roomIdCtrl.clear();
@@ -495,14 +507,29 @@ class _BroadcastTabState extends State<_BroadcastTab> {
     setState(() => _sending = true);
 
     try {
+      final title   = _titleCtrl.text.trim();
+      final message = _messageCtrl.text.trim();
+
+      // 1. Write to Firestore (in-app notification bell)
       await FirebaseFirestore.instance.collection('notifications').add({
-        'title': _titleCtrl.text.trim(),
-        'message': _messageCtrl.text.trim(),
+        'title': title,
+        'message': message,
         'type': 'general',
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      _showSnack('✅ Notification broadcast to all users!');
+      // 2. Send real FCM push to all devices (background + killed state)
+      if (FcmService.isConfigured) {
+        await FcmService.sendToAllUsers(
+          title: title,
+          body: message,
+          type: 'general',
+        );
+        _showSnack('✅ Push notification sent to all users!');
+      } else {
+        _showSnack('✅ In-app notification saved (push key not configured yet)');
+      }
+
       _titleCtrl.clear();
       _messageCtrl.clear();
     } catch (e) {

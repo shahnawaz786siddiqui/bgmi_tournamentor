@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/tournament_service.dart';
 import '../AdminPanel/admin_login_screen.dart';
 import 'shop.dart';
+import 'edit_profile_screen.dart';
 
 class WarriorProfileScreen extends StatefulWidget {
   const WarriorProfileScreen({super.key});
@@ -25,6 +26,8 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
     final upiController = TextEditingController();
     String selectedMethod = 'UPI';
     bool loading = false;
+    final accountController = TextEditingController();
+    final ifscController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -147,31 +150,79 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
                       },
                     ),
                     const SizedBox(height: 14),
-                    // UPI / Phone
-                    TextField(
-                      controller: upiController,
-                      keyboardType: TextInputType.text,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        labelText: selectedMethod == 'Bank Transfer'
-                            ? 'Phone Number'
-                            : 'UPI ID / Phone Number',
-                        labelStyle: const TextStyle(color: Colors.white54),
-                        prefixIcon: const Icon(Icons.person_outline,
-                            color: Color(0xFFF47B25), size: 18),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.white24),
+                    // Payment details input
+                    if (selectedMethod == 'Bank Transfer') ...[
+                      TextField(
+                        controller: accountController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Account Number',
+                          labelStyle: const TextStyle(color: Colors.white54),
+                          prefixIcon: const Icon(Icons.account_balance,
+                              color: Color(0xFFF47B25), size: 18),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.white24),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFF47B25)),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF3B2314),
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide:
-                              const BorderSide(color: Color(0xFFF47B25)),
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFF3B2314),
                       ),
-                    ),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: ifscController,
+                        keyboardType: TextInputType.text,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'IFSC Code',
+                          labelStyle: const TextStyle(color: Colors.white54),
+                          prefixIcon: const Icon(Icons.code,
+                              color: Color(0xFFF47B25), size: 18),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.white24),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFF47B25)),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF3B2314),
+                        ),
+                      ),
+                    ] else ...[
+                      TextField(
+                        controller: upiController,
+                        keyboardType: TextInputType.text,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: selectedMethod == 'Bank Transfer'
+                              ? 'Phone Number'
+                              : 'UPI ID / Phone Number',
+                          labelStyle: const TextStyle(color: Colors.white54),
+                          prefixIcon: const Icon(Icons.person_outline,
+                              color: Color(0xFFF47B25), size: 18),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(color: Colors.white24),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide:
+                                const BorderSide(color: Color(0xFFF47B25)),
+                          ),
+                          filled: true,
+                          fillColor: const Color(0xFF3B2314),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
@@ -207,6 +258,8 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
                                 final amtText =
                                     amountController.text.trim();
                                 final upi = upiController.text.trim();
+                                final accNum = accountController.text.trim();
+                                final ifsc = ifscController.text.trim();
 
                                 if (amtText.isEmpty) {
                                   ScaffoldMessenger.of(context).showSnackBar(
@@ -216,13 +269,24 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
                                   );
                                   return;
                                 }
-                                if (upi.isEmpty) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content: Text(
-                                            'Enter UPI ID / phone number')),
-                                  );
-                                  return;
+                                if (selectedMethod == 'Bank Transfer') {
+                                  if (accNum.isEmpty || ifsc.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Enter Account Number & IFSC Code')),
+                                    );
+                                    return;
+                                  }
+                                } else {
+                                  if (upi.isEmpty) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Enter UPI ID / phone number')),
+                                    );
+                                    return;
+                                  }
                                 }
 
                                 final amt = double.tryParse(amtText);
@@ -242,6 +306,8 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
                                     amount: amt,
                                     upiOrPhone: upi,
                                     paymentMethod: selectedMethod,
+                                    accountNumber: accNum,
+                                    ifscCode: ifsc,
                                   );
                                   if (ctx.mounted) Navigator.pop(ctx);
                                   if (context.mounted) {
@@ -316,7 +382,10 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.arrow_back, color: Colors.white),
+                    // GestureDetector(
+                    //   onTap: () => Navigator.maybePop(context),
+                    //   child: const Icon(Icons.arrow_back, color: Colors.white),
+                    // ),
 
                     const Expanded(
                       child: Center(
@@ -476,11 +545,17 @@ class _WarriorProfileScreenState extends State<WarriorProfileScreen> {
                         minimumSize: const Size(double.infinity, 45),
                       ),
                       onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Profile editing coming soon!')),
-                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const EditProfileScreen(),
+                          ),
+                        ).then((_) {
+                          // Refresh warrior profile screen when returning from edit
+                          setState(() {});
+                        });
                       },
-                      child: const Text("Edit Profile"),
+                      child: const Text("Edit Profile", style: TextStyle(color: Colors.white)),
                     ),
 
                     const SizedBox(height: 12),

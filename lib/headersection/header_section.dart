@@ -1,7 +1,5 @@
-import 'package:bgmi_tournamentor/main.dart';
+import 'package:bgmi_tournamentor/screen/notifications_screen.dart';
 import 'package:flutter/material.dart';
-
-import '../uihelper/ui_helper.dart';
 
 class HeaderSection extends StatelessWidget {
   const HeaderSection({super.key});
@@ -41,11 +39,7 @@ class HeaderSection extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.notifications_active_rounded),
-            color: primaryColor,
-          )
+          const NotificationBellButton(),
         ],
       ),
     );

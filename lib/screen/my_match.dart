@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../services/tournament_service.dart';
+import 'notifications_screen.dart';
 
 class MyMatchesScreen extends StatefulWidget {
   const MyMatchesScreen({super.key});
@@ -118,7 +119,7 @@ class _MyMatchesScreenState extends State<MyMatchesScreen>
                           ),
                         ],
                       ),
-                      const Icon(Icons.notifications, color: Colors.white)
+                      const NotificationBellButton(),
                     ],
                   ),
                 ),
@@ -205,6 +206,7 @@ class _MyMatchesScreenState extends State<MyMatchesScreen>
         final status = (match['status'] ?? 'UPCOMING').toString().toUpperCase();
         final roomId = match['roomId']?.toString() ?? '';
         final roomPassword = match['roomPassword']?.toString() ?? '';
+        final imageUrl = match['imageUrl']?.toString() ?? '';
 
         return _tournamentCard(
           title: title,
@@ -220,6 +222,7 @@ class _MyMatchesScreenState extends State<MyMatchesScreen>
           status: status,
           roomId: roomId,
           roomPassword: roomPassword,
+          imageUrl: imageUrl,
         );
       },
     );
@@ -249,6 +252,7 @@ class _MyMatchesScreenState extends State<MyMatchesScreen>
     required String status,
     String roomId = '',
     String roomPassword = '',
+    String imageUrl = '',
   }) {
     final double progress =
         totalSlots > 0 ? (joinedPlayers / totalSlots).clamp(0.0, 1.0) : 0;
@@ -278,18 +282,44 @@ class _MyMatchesScreenState extends State<MyMatchesScreen>
           ClipRRect(
             borderRadius:
                 const BorderRadius.vertical(top: Radius.circular(14)),
-            child: Image.asset(
-              "assets/images/my-match.jpg",
-              height: 120,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                height: 120,
-                color: const Color(0xFF3B2314),
-                child: const Icon(Icons.sports_esports,
-                    color: Colors.white54, size: 48),
-              ),
-            ),
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      "assets/images/my-match.jpg",
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    loadingBuilder: (context, child, progress) {
+                      if (progress == null) return child;
+                      return Container(
+                        height: 120,
+                        color: const Color(0xFF3B2314),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Color(0xFFF47B25),
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      );
+                    },
+                  )
+                : Image.asset(
+                    "assets/images/my-match.jpg",
+                    height: 120,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 120,
+                      color: const Color(0xFF3B2314),
+                      child: const Icon(Icons.sports_esports,
+                          color: Colors.white54, size: 48),
+                    ),
+                  ),
           ),
 
           Padding(

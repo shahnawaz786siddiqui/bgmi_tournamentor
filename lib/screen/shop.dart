@@ -36,10 +36,11 @@ class _ShopScreenState extends State<ShopScreen> {
             fontSize: 20,
           ),
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: primaryColor),
-          onPressed: () {},
-        ),
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back, color: primaryColor),
+        //   onPressed: () {
+        //   },
+        // ),
         actions: [
           IconButton(
             icon: const Icon(Icons.history, color: primaryColor),
@@ -148,10 +149,10 @@ class _ShopScreenState extends State<ShopScreen> {
                 crossAxisSpacing: 14,
                 childAspectRatio: 0.78,
                 children: [
-                  CreditCardWidget("100 Credits", "₹80", "STARTER", 100, 80),
-                  CreditCardWidget("500 Credits", "₹400", "POPULAR", 500, 400),
-                  CreditCardWidget("1200 Credits", "₹800", "15% OFF", 1200, 800),
-                  CreditCardWidget("2500 Credits", "₹1600", "BEST VALUE", 2500, 1600),
+                  CreditCardWidget("80 Credits", "₹80", "STARTER", 80, 80),
+                  CreditCardWidget("400 Credits", "₹400", "POPULAR", 400, 400),
+                  CreditCardWidget("800 Credits", "₹800", "15% OFF", 800, 800),
+                  CreditCardWidget("1600 Credits", "₹1600", "BEST VALUE", 1600, 1600),
                 ],
               ),
             ),

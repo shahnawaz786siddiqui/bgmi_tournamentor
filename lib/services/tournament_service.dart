@@ -194,7 +194,11 @@ class TournamentService {
 
   Stream<List<Map<String, dynamic>>> myTournamentsStream() {
     final userId = _auth.currentUser?.uid;
-    if (userId == null) return Stream.value([]);
+    print('MY_MATCHES_DEBUG: myTournamentsStream called, userId=$userId');
+    if (userId == null) {
+      print('MY_MATCHES_DEBUG: userId is null, returning empty stream');
+      return Stream.value([]);
+    }
 
     final userStream = _firestore.collection('users').doc(userId).snapshots();
     final tournamentsStream = _firestore.collection('tournaments').snapshots();
@@ -205,17 +209,28 @@ class TournamentService {
     bool userReady = false;
     bool tournamentsReady = false;
 
+    StreamSubscription? userSub;
+    StreamSubscription? tournamentSub;
+
     void emit() {
       if (!userReady || !tournamentsReady) return;
+      if (controller.isClosed) return;
       try {
         // Get registered IDs from latest user doc
         List<String> registeredIds = [];
         if (latestUser != null && latestUser!.exists) {
           final data = latestUser!.data();
+          print('MY_MATCHES_DEBUG: User doc data keys: ${data?.keys.toList()}');
+          print('MY_MATCHES_DEBUG: registeredTournaments raw: ${data?['registeredTournaments']}');
           if (data != null && data.containsKey('registeredTournaments')) {
             registeredIds = List<String>.from(data['registeredTournaments'] ?? []);
           }
+        } else {
+          print('MY_MATCHES_DEBUG: User doc does not exist or is null');
         }
+
+        print('MY_MATCHES_DEBUG: registeredIds=$registeredIds');
+        print('MY_MATCHES_DEBUG: total tournaments in DB=${latestTournaments.length}');
 
         // Build a map of all tournaments
         final Map<String, Map<String, dynamic>> cache = {};
@@ -231,17 +246,20 @@ class TournamentService {
             .map((id) => cache[id]!)
             .toList();
 
+        print('MY_MATCHES_DEBUG: final result count=${result.length}');
+        for (final r in result) {
+          print('MY_MATCHES_DEBUG: match title=${r['title']}, status=${r['status']}');
+        }
+
         controller.add(result);
       } catch (e) {
-        // ignore emit errors
+        print('MY_MATCHES_DEBUG: emit error: $e');
       }
     }
 
-    StreamSubscription? userSub;
-    StreamSubscription? tournamentSub;
-
-    controller = StreamController<List<Map<String, dynamic>>>.broadcast(
+    controller = StreamController<List<Map<String, dynamic>>>(
       onListen: () {
+        print('MY_MATCHES_DEBUG: StreamController onListen called');
         userSub = userStream.listen(
           (snap) {
             latestUser = snap;
@@ -291,10 +309,13 @@ class TournamentService {
   }
 
   /// Submit a withdrawal request — deducts balance & writes a Pending payout doc atomically.
+  /// Submit a withdrawal request — deducts balance & writes a Pending payout doc atomically.
   Future<void> requestWithdrawal({
     required double amount,
     required String upiOrPhone,
     required String paymentMethod,
+    String? accountNumber,
+    String? ifscCode,
   }) async {
     final user = await ensureUser();
     final uid = user.uid;
@@ -329,7 +350,8 @@ class TournamentService {
 
       // Create payout request
       final userName = snap.data()?['name'] ?? 'Unknown';
-      tx.set(payoutRef, {
+      
+      final Map<String, dynamic> payoutData = {
         'userId': uid,
         'userName': userName,
         'amount': amount,
@@ -337,7 +359,16 @@ class TournamentService {
         'paymentMethod': paymentMethod,
         'status': 'Pending',
         'requestedAt': FieldValue.serverTimestamp(),
-      });
+      };
+      
+      if (accountNumber != null && accountNumber.isNotEmpty) {
+        payoutData['accountNumber'] = accountNumber;
+      }
+      if (ifscCode != null && ifscCode.isNotEmpty) {
+        payoutData['ifscCode'] = ifscCode;
+      }
+      
+      tx.set(payoutRef, payoutData);
     });
   }
 
